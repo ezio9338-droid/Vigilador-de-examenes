@@ -95,7 +95,7 @@
 
   <section class="card">
     <h2>3. Señales de vigilancia en directo</h2>
-    <p class="muted">Toca dentro de la tarea, escribe algo, y después cambia de pestaña o de app y vuelve. Lo importante: tocar dentro del marco <b>no</b> debe parecer una salida, y cambiar de app <b>sí</b>.</p>
+    <p class="muted">Toca dentro de la tarea, escribe algo, y después cambia de pestaña o de app y vuelve. Lo importante: tocar dentro del marco <b>no</b> debe parecer una salida, y cambiar de app <b>sí</b>. En ordenador, prueba también esto: toca dentro de la tarea y, sin cambiar de pestaña, haz clic en otra ventana que se vea al lado (por ejemplo, el Finder); debe contar como salida.</p>
     <div class="signals">
       <div class="sig"><b>Página oculta</b><span id="sHidden">–</span></div>
       <div class="sig"><b>Foco dentro del marco</b><span id="sInFrame">–</span></div>
@@ -209,8 +209,10 @@ function check() {
     fs: !!(document.fullscreenElement || document.webkitFullscreenElement),
     online: navigator.onLine,
   };
-  // Salida por foco: la ventana no tiene el foco y tampoco lo tiene el marco.
-  s.noFocus = !s.hasFocus && !s.inFrame;
+  // Salida por foco: el navegador ya no tiene el foco. Con el foco dentro del marco, document.hasFocus()
+  // sigue siendo true, así que tocar la tarea no cuenta; hacer clic en otra app sí.
+  s.noFocus = !s.hasFocus;
+  s.away = s.hidden || s.noFocus;
   yn($("sHidden"), s.hidden);
   $("sInFrame").textContent = s.inFrame ? "sí" : "no"; $("sInFrame").className = "info";
   yn($("sNoFocus"), s.noFocus);
@@ -221,13 +223,15 @@ function check() {
   for (const k of Object.keys(s)) {
     if (prev[k] !== undefined && prev[k] !== s[k]) {
       const names = { hidden: "página oculta", inFrame: "foco en el marco", hasFocus: "document.hasFocus()",
-        reduced: "ventana reducida", fs: "pantalla completa", online: "conexión", noFocus: "foco fuera" };
+        reduced: "ventana reducida", fs: "pantalla completa", online: "conexión", noFocus: "foco fuera",
+        away: "SALIDA" };
       addLog(`${names[k]}: ${s[k] ? "sí" : "no"}`);
       if (k === "inFrame" && s[k]) counts.focoEnMarco++;
-      if ((k === "hidden" || k === "noFocus") && s[k]) counts.salidas++;
+      if (k === "away" && s[k]) counts.salidas++;
     }
     prev[k] = s[k];
   }
+  renderReport();
 }
 addEventListener("blur", () => {
   counts.blurWindow++;
