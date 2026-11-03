@@ -67,10 +67,12 @@
     <label class="check"><input id="noPopups" type="checkbox" checked> Impedir que abra pestañas nuevas</label>
     <div class="row">
       <button id="load" class="primary">Cargar en el marco</button>
+      <button id="reopen">Ya he iniciado sesión: abrir el examen</button>
       <button id="fs">Pantalla completa</button>
       <button id="newTab">Abrir en pestaña nueva (para comparar)</button>
     </div>
     <p id="status" class="muted">Aún no se ha cargado nada.</p>
+    <p class="muted">Si al cargar te pide iniciar sesión y después te deja en la página principal de Science Bits, no abras el examen desde ahí (se iría a otra pestaña): pulsa <b>Ya he iniciado sesión: abrir el examen</b> para volver a cargar tu enlace dentro del marco.</p>
   </section>
 
   <div id="frameWrap">
@@ -90,6 +92,11 @@
       <button data-v="sí">Puedo iniciar sesión dentro</button>
       <button data-v="no">No puedo / vuelve a pedirla</button>
       <button data-v="ya estaba">Ya tenía la sesión iniciada</button>
+    </div>
+    <div class="row" data-q="reabrir">
+      <button data-v="abre el examen">Tras iniciar sesión, «abrir el examen» lo abre dentro</button>
+      <button data-v="vuelve a la principal">Me vuelve a llevar a la página principal</button>
+      <button data-v="no hizo falta">No hizo falta</button>
     </div>
     <div class="row" data-q="pestanas">
       <button data-v="se abren fuera">Algo se abre en una pestaña nueva</button>
@@ -181,6 +188,13 @@ frame.addEventListener("load", () => {
   addLog(`el marco ha cargado una página (${loadEvents})`);
   setStatus("El marco ha cargado algo. Si la web lo prohíbe, verás un error o la caja en blanco: contesta en el apartado 2.", "ok");
 });
+let reopens = 0;
+$("reopen").onclick = () => {
+  if (!loadedUrl) { setStatus("Primero pega el enlace y pulsa «Cargar en el marco».", "warn"); return; }
+  reopens++;
+  addLog("abrir el examen de nuevo tras iniciar sesión");
+  $("load").click();
+};
 $("newTab").onclick = () => {
   const raw = $("url").value.trim();
   if (/^https:\/\//.test(raw)) window.open(raw, "_blank", "noopener");
@@ -278,6 +292,8 @@ function renderReport() {
     `Cargas del marco: ${loadEvents}`,
     `¿Se ve dentro del marco?: ${answers.carga ?? "(sin contestar)"}`,
     `¿Inicio de sesión dentro?: ${answers.login ?? "(sin contestar)"}`,
+    `Veces que se volvió a abrir el examen: ${reopens}`,
+    `¿Tras iniciar sesión se abre el examen?: ${answers.reabrir ?? "(sin contestar)"}`,
     `Pestañas nuevas bloqueadas: ${$("noPopups").checked ? "sí" : "no"}`,
     `¿Qué pasa con las pestañas nuevas?: ${answers.pestanas ?? "(sin contestar)"}`,
     `¿Se puede hacer la tarea?: ${answers.tarea ?? "(sin contestar)"}`,
