@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de marco</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1d2330; --muted: #5d6677; --line: #d9dde5;
+    --accent: #1f5fbf; --ok: #1b7a3d; --bad: #b3261e; --warn: #9a6200;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171c; --card: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --line: #333a45;
+      --accent: #6ea2ff; --ok: #5fcf86; --bad: #ff8a80; --warn: #f0b955; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.4rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 12px 0; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type=url] { width: 100%; padding: 10px; font: inherit; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg); color: var(--text); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { font: inherit; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button[aria-pressed=true] { outline: 3px solid var(--accent); }
+  #frameWrap { position: relative; height: 70vh; min-height: 360px; border: 2px dashed var(--line);
+    border-radius: 10px; overflow: hidden; background: var(--card); display: none; }
+  #frameWrap.on { display: block; }
+  #frameWrap:fullscreen { height: 100vh; border: 0; border-radius: 0; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+  #exitFs { position: absolute; top: 8px; right: 8px; display: none; z-index: 2; }
+  #frameWrap:fullscreen #exitFs { display: block; }
+  .signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+  .sig { border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .sig b { display: block; font-size: .85rem; color: var(--muted); font-weight: 600; }
+  .yes { color: var(--bad); font-weight: 700; }
+  .no { color: var(--ok); font-weight: 700; }
+  .info { color: var(--accent); font-weight: 700; }
+  #status { font-weight: 600; }
+  #status.ok { color: var(--ok); } #status.bad { color: var(--bad); } #status.warn { color: var(--warn); }
+  #log { max-height: 220px; overflow: auto; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 0; white-space: pre-wrap; }
+  textarea { width: 100%; min-height: 160px; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  ol { padding-left: 20px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Prueba: ¿se puede vigilar un examen externo?</h1>
+  <p class="muted">Esta página comprueba si una tarea de Science Bits (u otra web) se abre dentro de un marco y si dentro se puede iniciar sesión. No guarda ni envía nada.</p>
+
+  <section class="card">
+    <h2>1. Enlace de la tarea</h2>
+    <label for="url">Pega el enlace (debe empezar por https://)</label>
+    <input id="url" type="url" placeholder="https://..." autocomplete="off">
+    <div class="row">
+      <button id="load" class="primary">Cargar en el marco</button>
+      <button id="fs">Pantalla completa</button>
+      <button id="newTab">Abrir en pestaña nueva (para comparar)</button>
+    </div>
+    <p id="status" class="muted">Aún no se ha cargado nada.</p>
+  </section>
+
+  <div id="frameWrap">
+    <button id="exitFs">Salir de pantalla completa</button>
+    <iframe id="frame" title="Tarea externa" allow="fullscreen; clipboard-write; autoplay; microphone; camera"
+      referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+
+  <section class="card">
+    <h2>2. ¿Qué ves dentro del marco?</h2>
+    <div class="row" data-q="carga">
+      <button data-v="se ve">Se ve Science Bits</button>
+      <button data-v="error o en blanco">Error, aviso o en blanco</button>
+    </div>
+    <p class="muted">Si sale un error tipo «se ha rechazado la conexión» o la caja queda vacía, la web no permite abrirse dentro de otra página.</p>
+    <div class="row" data-q="login">
+      <button data-v="sí">Puedo iniciar sesión dentro</button>
+      <button data-v="no">No puedo / vuelve a pedirla</button>
+      <button data-v="ya estaba">Ya tenía la sesión iniciada</button>
+    </div>
+    <div class="row" data-q="tarea">
+      <button data-v="sí">Puedo abrir y contestar la tarea</button>
+      <button data-v="no">No funciona bien</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Señales de vigilancia en directo</h2>
+    <p class="muted">Toca dentro de la tarea, escribe algo, y después cambia de pestaña o de app y vuelve. Lo importante: tocar dentro del marco <b>no</b> debe parecer una salida, y cambiar de app <b>sí</b>.</p>
+    <div class="signals">
+      <div class="sig"><b>Página oculta</b><span id="sHidden">–</span></div>
+      <div class="sig"><b>Foco dentro del marco</b><span id="sInFrame">–</span></div>
+      <div class="sig"><b>Foco fuera (salida)</b><span id="sNoFocus">–</span></div>
+      <div class="sig"><b>Ventana reducida</b><span id="sReduced">–</span></div>
+      <div class="sig"><b>Pantalla completa</b><span id="sFs">–</span></div>
+      <div class="sig"><b>Conexión</b><span id="sOnline">–</span></div>
+    </div>
+    <p class="muted" style="margin-top:10px">Registro:</p>
+    <pre id="log"></pre>
+  </section>
+
+  <section class="card">
+    <h2>4. Resultado</h2>
+    <p>Copia este texto y pégalo en la conversación (uno por dispositivo).</p>
+    <textarea id="report" readonly></textarea>
+    <div class="row"><button id="copy" class="primary">Copiar resultado</button></div>
+  </section>
+</main>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const frame = $("frame"), wrap = $("frameWrap"), statusEl = $("status");
+const answers = {};
+const log = [];
+const counts = { salidas: 0, focoEnMarco: 0, blurWindow: 0 };
+let loadedUrl = "", loadEvents = 0, loadTimer = null, t0 = Date.now();
+
+const coarse = matchMedia("(pointer: coarse)").matches;
+const isTablet = coarse && Math.min(screen.width, screen.height) >= 600;
+const isIpad = /iPad/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function stamp() { return ((Date.now() - t0) / 1000).toFixed(1).padStart(6) + " s"; }
+function addLog(msg) {
+  log.push(`${stamp()}  ${msg}`);
+  $("log").textContent = log.slice(-200).join("\n");
+  $("log").scrollTop = $("log").scrollHeight;
+  renderReport();
+}
+function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || "muted"; }
+function yn(el, v, badWhenTrue = true, labels = ["sí", "no"]) {
+  el.textContent = v ? labels[0] : labels[1];
+  el.className = v === badWhenTrue ? "yes" : "no";
+}
+
+// --- Carga ---
+$("load").onclick = () => {
+  const raw = $("url").value.trim();
+  let u;
+  try { u = new URL(raw); } catch { setStatus("El enlace no es válido.", "bad"); return; }
+  if (u.protocol !== "https:") { setStatus("El enlace debe empezar por https://", "bad"); return; }
+  loadedUrl = u.origin + u.pathname; // sin parámetros, por si llevan algún dato personal
+  loadEvents = 0;
+  wrap.classList.add("on");
+  setStatus("Cargando…", "warn");
+  addLog(`cargando ${u.host}`);
+  clearTimeout(loadTimer);
+  loadTimer = setTimeout(() => {
+    if (loadEvents === 0) { setStatus("Tras 20 s el marco no ha terminado de cargar. Mira qué aparece en la caja.", "warn"); addLog("sin carga tras 20 s"); }
+  }, 20000);
+  frame.src = u.toString();
+};
+frame.addEventListener("load", () => {
+  if (!frame.getAttribute("src")) return;
+  loadEvents++;
+  addLog(`el marco ha cargado una página (${loadEvents})`);
+  setStatus("El marco ha cargado algo. Si la web lo prohíbe, verás un error o la caja en blanco: contesta en el apartado 2.", "ok");
+});
+$("newTab").onclick = () => {
+  const raw = $("url").value.trim();
+  if (/^https:\/\//.test(raw)) window.open(raw, "_blank", "noopener");
+};
+
+// --- Pantalla completa ---
+$("fs").onclick = async () => {
+  if (!wrap.classList.contains("on")) { setStatus("Primero carga el enlace.", "warn"); return; }
+  try {
+    if (wrap.requestFullscreen) await wrap.requestFullscreen();
+    else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen();
+    else addLog("este navegador no permite pantalla completa");
+  } catch (e) { addLog("pantalla completa rechazada: " + e.message); }
+};
+$("exitFs").onclick = () => (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+
+// --- Respuestas del apartado 2 ---
+document.querySelectorAll("[data-q]").forEach((row) => {
+  row.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      answers[row.dataset.q] = b.dataset.v;
+      row.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      renderReport();
+    };
+  });
+});
+
+// --- Señales ---
+function isReduced() {
+  if (!isTablet) return false;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return false;
+  const r = (innerWidth * innerHeight) / (screen.width * screen.height);
+  return r < 0.75;
+}
+const prev = {};
+function check() {
+  const s = {
+    hidden: document.hidden,
+    inFrame: document.activeElement === frame,
+    hasFocus: document.hasFocus(),
+    reduced: isReduced(),
+    fs: !!(document.fullscreenElement || document.webkitFullscreenElement),
+    online: navigator.onLine,
+  };
+  // Salida por foco: la ventana no tiene el foco y tampoco lo tiene el marco.
+  s.noFocus = !s.hasFocus && !s.inFrame;
+  yn($("sHidden"), s.hidden);
+  $("sInFrame").textContent = s.inFrame ? "sí" : "no"; $("sInFrame").className = "info";
+  yn($("sNoFocus"), s.noFocus);
+  yn($("sReduced"), s.reduced);
+  $("sFs").textContent = s.fs ? "sí" : "no"; $("sFs").className = "info";
+  yn($("sOnline"), s.online, false, ["con red", "sin red"]);
+
+  for (const k of Object.keys(s)) {
+    if (prev[k] !== undefined && prev[k] !== s[k]) {
+      const names = { hidden: "página oculta", inFrame: "foco en el marco", hasFocus: "document.hasFocus()",
+        reduced: "ventana reducida", fs: "pantalla completa", online: "conexión", noFocus: "foco fuera" };
+      addLog(`${names[k]}: ${s[k] ? "sí" : "no"}`);
+      if (k === "inFrame" && s[k]) counts.focoEnMarco++;
+      if ((k === "hidden" || k === "noFocus") && s[k]) counts.salidas++;
+    }
+    prev[k] = s[k];
+  }
+}
+addEventListener("blur", () => {
+  counts.blurWindow++;
+  // El evento blur llega antes de que activeElement cambie: se mira un instante después.
+  setTimeout(() => addLog(`evento blur de la ventana (foco en el marco: ${document.activeElement === frame ? "sí" : "no"})`), 0);
+  setTimeout(check, 0);
+});
+addEventListener("focus", () => { addLog("evento focus de la ventana"); check(); });
+document.addEventListener("visibilitychange", check);
+document.addEventListener("fullscreenchange", check);
+document.addEventListener("webkitfullscreenchange", check);
+addEventListener("resize", check);
+addEventListener("online", check);
+addEventListener("offline", check);
+setInterval(check, 500);
+check();
+
+// --- Informe ---
+function renderReport() {
+  const lines = [
+    "PRUEBA DE MARCO",
+    `Fecha: ${new Date().toLocaleString("es-ES")}`,
+    `Dispositivo: ${isIpad ? "iPad" : isTablet ? "tableta" : coarse ? "móvil" : "ordenador"}`,
+    `Navegador: ${navigator.userAgent}`,
+    `Pantalla: ${screen.width}x${screen.height}, ventana ${innerWidth}x${innerHeight}`,
+    `Web probada: ${loadedUrl || "(ninguna)"}`,
+    `Cargas del marco: ${loadEvents}`,
+    `¿Se ve dentro del marco?: ${answers.carga ?? "(sin contestar)"}`,
+    `¿Inicio de sesión dentro?: ${answers.login ?? "(sin contestar)"}`,
+    `¿Se puede hacer la tarea?: ${answers.tarea ?? "(sin contestar)"}`,
+    `Veces que el foco entró en el marco: ${counts.focoEnMarco}`,
+    `Eventos blur de la ventana: ${counts.blurWindow}`,
+    `Salidas detectadas (oculta o foco fuera): ${counts.salidas}`,
+    "",
+    "Registro:",
+    ...log.slice(-60),
+  ];
+  $("report").value = lines.join("\n");
+}
+$("copy").onclick = async () => {
+  renderReport();
+  try { await navigator.clipboard.writeText($("report").value); $("copy").textContent = "Copiado"; }
+  catch { $("report").select(); document.execCommand("copy"); $("copy").textContent = "Copiado"; }
+  setTimeout(() => ($("copy").textContent = "Copiar resultado"), 2000);
+};
+renderReport();
+</script>
+</body>
+</html>
